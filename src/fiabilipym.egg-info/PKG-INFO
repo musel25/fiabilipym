@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: fiabilipym
-Version: 2.8.1
+Version: 3.0.1
 Summary: Reliability system modeling and analysis with graph visualization
 Home-page: http://fiabilipy.org
 Author: chabotsi, crubier, cdrom1
@@ -18,65 +18,99 @@ Dynamic: author
 Dynamic: home-page
 Dynamic: requires-python
 
+
 # fiabilipym
 
-Reliability system modeling and analysis with graph visualization. This package is a modernized, Python 3 compatible distribution based on fiabilipy, with the same public API and mathematical behavior, plus working Graphviz-based drawing.
+Reliability system modeling and analysis with graph visualization.
+
+`fiabilipym` is a modernized, **Python 3 compatible distribution of the original
+`fiabilipy` library**, preserving the **same public API, mathematical models,
+and numerical behavior**, while updating packaging, dependencies, and system
+drawing.
+
+The goal of this project is **compatibility first**, modernization second.
+
+---
+
+## Compatibility with `fiabilipy`
+
+`fiabilipym` is designed to be a **drop-in replacement** for `fiabilipy`.
+
+**Guaranteed invariants:**
+- Same public API (`Component`, `System`, `Markov`, `Voter`, …)
+- Same system construction semantics (`E` → components → `S`)
+- Same reliability / availability / MTTF mathematics
+- Same symbolic and numeric results
+
+Code written for **fiabilipy 2.x** runs unchanged (except for Python 2 → 3 syntax).
+
+The examples below correspond directly to the *“How to build a system”* section
+of the original **fiabilipy 2.4 documentation**.
+
+---
 
 ## What it does
 
-- Build reliability block diagrams and compute reliability, availability, maintainability, and MTTF.
-- Model systems with Markov processes.
-- Draw system graphs using Graphviz layouts via NetworkX.
+- Build reliability block diagrams
+- Compute reliability, availability, maintainability, and MTTF
+- Model systems using Markov processes
+- Draw system graphs using Graphviz layouts via NetworkX
 
-## Install (uv)
+---
 
-```bash
-uv venv
-uv sync
-```
+## Canonical examples (identical behavior)
 
-To build a wheel or sdist:
+### Building a component
 
-```bash
-uv build
-```
+```python
+from fiabilipym import Component
+from sympy import Symbol
 
-## Graphviz system dependency
+t = Symbol("t", positive=True)
+comp = Component("C0", 1e-4)
 
-`System.draw()` uses Graphviz layout via `pygraphviz`, which requires Graphviz to be installed on your system.
+comp.mttf
+# 10000.0
 
-Examples:
+comp.reliability(1000)
+# 0.904837418035960
 
-```bash
-# Debian/Ubuntu
-sudo apt-get install graphviz
+comp.reliability(t)
+# exp(-0.0001*t)
 
-# macOS (Homebrew)
-brew install graphviz
+comp.reliability(t=100)
+# 0.990049833749168
+````
+---
 
-# Windows (Chocolatey)
-choco install graphviz
-```
-
-## Quick start
+### Building a system (series)
 
 ```python
 from fiabilipym import Component, System
+from sympy import Symbol
 
-motor = Component("M", 1e-4, 3e-2)
-power = Component("P", 1e-6, 2e-4)
+t = Symbol("t", positive=True)
 
-system = System()
-system["E"] = [power]
-system[power] = [motor]
-system[motor] = "S"
+power = Component("P0", 1e-6)
+motor = Component("M0", 1e-3)
 
-print(system.reliability(1000))
+S = System()
+S["E"] = [power]
+S[power] = [motor]
+S[motor] = "S"
+
+S.mttf
+# 1000000/1001
+
+S.reliability(t)
+# exp(-1001*t/1000000)
 ```
+
+---
 
 ## Visualization
 
-`System.draw()` uses matplotlib for rendering and Graphviz for layout. In a notebook or script, call `plt.show()` after drawing.
+`System.draw()` uses matplotlib for rendering and Graphviz for layout.
 
 ```python
 from fiabilipym import Component, System
@@ -94,18 +128,51 @@ system.draw()
 plt.show()
 ```
 
-For headless environments, use a non-interactive backend:
+For headless environments:
 
 ```python
 import matplotlib
 matplotlib.use("Agg")
 ```
 
+---
+
+## Graphviz system dependency
+
+Graph layout relies on Graphviz via `pygraphviz`.
+
+```bash
+# Debian / Ubuntu
+sudo apt-get install graphviz
+
+# macOS (Homebrew)
+brew install graphviz
+
+# Windows (Chocolatey)
+choco install graphviz
+```
+
+---
+
+## Installation (uv)
+
+```bash
+uv venv
+uv sync
+
+uv pip install -i https://test.pypi.org/simple --extra-index-url https://pypi.org/simple fiabilipym
+
+
+```
+
+
 ## Tests
 
 ```bash
 PYTHONPATH=src uv run python -m unittest discover -s tests
 ```
+
+---
 
 ## Package structure
 
@@ -125,4 +192,10 @@ fiabilipym/
 └── tests/
     ├── test_markov.py
     └── test_system.py
+```
+
+```
+
+If you want, I can also give you a **one-paragraph “Migration from fiabilipy”** snippet or trim this to a **shorter README for PyPI** without losing the equivalence signal.
+::contentReference[oaicite:0]{index=0}
 ```
