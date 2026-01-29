@@ -26,10 +26,12 @@ Mean-Time-To-Failure, and so on.
 """
 
 from numpy import empty, ones, delete
+import numpy as np
 from sympy import exp, Symbol, oo
 from scipy.special import binom
 from itertools import combinations, chain
 from collections.abc import Iterable
+from collections import deque
 from functools import reduce
 import networkx as nx
 
@@ -39,6 +41,10 @@ __all__ = ['System']
 
 ALLSUBSETS = lambda n: (chain(*[combinations(range(n), ni)
                         for ni in range(n+1)]))
+
+
+def _is_component(node):
+    return isinstance(node, Component)
 
 
 class System(object):
@@ -84,7 +90,9 @@ class System(object):
 
     def __setitem__(self, component, successors):
         #Let’s do different checks before inserting the element
-        if not isinstance(successors, Iterable):
+        if isinstance(successors, (str, bytes)):
+            successors = [successors]
+        elif not isinstance(successors, Iterable):
             if not isinstance(successors, Component):
                 msg = u'successors must be a list of components, a component '
                 raise ValueError(msg)
@@ -93,7 +101,7 @@ class System(object):
             msg = u"'E' must be the first inserted component"
             raise ValueError(msg)
         for successor in successors:
-            if successor != 'S':
+            if _is_component(successor):
                 successor._systems.add(self)
             self._graph.add_edge(component, successor)
 
@@ -109,7 +117,7 @@ class System(object):
             except AttributeError:
                 assert self._graph[c] == 'S'
         self._graph.remove_node(component)
-        if component not in self.components:
+        if _is_component(component) and component not in self.components:
             component._systems.remove(self)
         #reset the cache
         self._cache = {}
@@ -143,13 +151,63 @@ class System(object):
     def components(self):
         r""" The list of the components used by the system
 
-            Returns
-            -------
-            out: list
-                the list of the components used by the system, except `E` and
-                `S`
+        Returns
+        -------
+        out: list
+            the list of the components used by the system, except `E` and
+            `S`
         """
-        return [comp for comp in self._graph if comp not in ('E', 'S')]
+        return [comp for comp in self._graph if _is_component(comp)]
+
+    def nodes(self):
+        return set(self._graph.nodes())
+
+    def _reachable(self, alive):
+        start, goal = "E", "S"
+        if start not in self._graph or goal not in self._graph:
+            return False
+        q = deque([start])
+        seen = {start}
+        while q:
+            u = q.popleft()
+            if u == goal:
+                return True
+            for v in self._graph.successors(u):
+                if v in seen:
+                    continue
+                if _is_component(v) and v not in alive:
+                    continue
+                seen.add(v)
+                q.append(v)
+        return False
+
+    def time_to_failure_sample(self, rng):
+        comps = list(self.components)
+        if not comps:
+            return 0.0
+
+        times = {c: float(c.sample_failure_time(rng, size=1)[0]) for c in comps}
+        alive = set(comps)
+
+        if not self._reachable(alive):
+            return 0.0
+
+        for comp, ttf in sorted(times.items(), key=lambda kv: kv[1]):
+            alive.remove(comp)
+            if not self._reachable(alive):
+                return ttf
+        return float("inf")
+
+    def monte_carlo(self, n, grid_t, seed=None, return_samples=False):
+        rng = np.random.default_rng(seed)
+        ttf = np.array([self.time_to_failure_sample(rng) for _ in range(n)],
+                       dtype=float)
+        grid_t = np.asarray(grid_t, dtype=float)
+        R = np.array([(ttf > tt).mean() for tt in grid_t], dtype=float)
+        mttf = float(ttf.mean())
+        if return_samples:
+            return mttf, R, ttf
+        return mttf, R
 
     def _probabilitiescomputation(self, t, method):
         """ Given a system and a `method` (either availability or

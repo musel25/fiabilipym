@@ -25,6 +25,7 @@ such as the reliability, the availability, the Mean-Time-To-Failure, and so on.
 """
 
 from sympy import exp, Symbol, oo
+import numpy as np
 
 __all__ = ['Component']
 
@@ -58,6 +59,8 @@ class Component(object):
         self.mu = mu
         self.name = name
         self.initialy_avaible = initialy_avaible
+        self.dist = None
+        self.age0 = 0.0
 
     def __setattr__(self, name, value):
         for system in self._systems:
@@ -193,3 +196,22 @@ class Component(object):
             33.333333333333336
         """
         return 1.0/self.mu
+
+    def with_distribution(self, dist, age0=0.0):
+        self.dist = dist
+        self.age0 = age0
+        return self
+
+    def sample_failure_time(self, rng, size=1):
+        if self.dist is None:
+            try:
+                rate = float(self.lambda_)
+            except (TypeError, ValueError) as exc:
+                msg = "lambda_ must be numeric to sample failure times"
+                raise TypeError(msg) from exc
+            return rng.exponential(scale=1.0 / rate, size=size)
+        if self.age0 <= 0:
+            return self.dist.sample(rng, size=size)
+        if not hasattr(self.dist, "sample_remaining"):
+            raise NotImplementedError("distribution does not support aging")
+        return self.age0 + self.dist.sample_remaining(rng, self.age0, size=size)

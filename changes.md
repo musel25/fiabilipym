@@ -54,3 +54,14 @@ Why: `iteritems` and `xrange` are Python 2-only; Python 3 uses `items()` and `ra
 
 - The computational behavior is unchanged; updates are mechanical and packaging-focused.
 - Visualization continues to rely on matplotlib plus Graphviz layout via `pygraphviz`.
+
+## 2026-01-29: Monte Carlo aging + Weibull distributions + notebook demo
+
+- Added lifetime distribution support with a Weibull implementation (`distribution.py`).
+- Components can now sample failure times, including aging via conditional residual life.
+- Systems and voters expose Monte Carlo simulation (`monte_carlo`, `time_to_failure_sample`).
+- Fixed graph construction to treat string nodes (e.g. `"N1"`) as single nodes.
+- Added `Voter.draw()` for visualization parity with `System.draw()`.
+- Added `fiabilipym_weibull_montecarlo_demo.ipynb` with architectures + plots.
+- Added tests for Monte Carlo behavior, Weibull mean matching, and voter sampling.
+- Exported Weibull helpers at the package root.

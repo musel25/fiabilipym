@@ -25,6 +25,7 @@ reliability, the availability, the Mean-Time-To-Failure, and so on.
 """
 
 from sympy import exp, Symbol, oo
+import numpy as np
 from scipy.special import binom
 from itertools import combinations, chain
 
@@ -215,3 +216,26 @@ class Voter(Component):
         """
         t = Symbol('t', positive=True)
         return (1 - self.maintainability(t)).integrate((t, 0, oo))
+
+    def draw(self):
+        from .system import System
+        system = System()
+        system['E'] = [self]
+        system[self] = 'S'
+        return system.draw()
+
+    def time_to_failure_sample(self, rng):
+        times = self.component.sample_failure_time(rng, size=self.N)
+        order = self.N - self.M
+        return float(np.partition(times, order)[order])
+
+    def monte_carlo(self, n, grid_t, seed=None, return_samples=False):
+        rng = np.random.default_rng(seed)
+        ttf = np.array([self.time_to_failure_sample(rng) for _ in range(n)],
+                       dtype=float)
+        grid_t = np.asarray(grid_t, dtype=float)
+        R = np.array([(ttf > tt).mean() for tt in grid_t], dtype=float)
+        mttf = float(ttf.mean())
+        if return_samples:
+            return mttf, R, ttf
+        return mttf, R
