@@ -1,3 +1,23 @@
+Metadata-Version: 2.4
+Name: fiabilipym
+Version: 2.8.1
+Summary: Reliability system modeling and analysis with graph visualization
+Home-page: http://fiabilipy.org
+Author: chabotsi, crubier, cdrom1
+Author-email: "chabotsi, crubier, cdrom1" <contact@fiabilipy.org>
+Project-URL: Homepage, http://fiabilipy.org
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: matplotlib>=3.9.4
+Requires-Dist: networkx>=3.2.1
+Requires-Dist: numpy>=1.26.4
+Requires-Dist: pygraphviz>=1.11
+Requires-Dist: scipy>=1.13.1
+Requires-Dist: sympy>=1.14.0
+Dynamic: author
+Dynamic: home-page
+Dynamic: requires-python
+
 # fiabilipym
 
 Reliability system modeling and analysis with graph visualization. This package is a modernized, Python 3 compatible distribution based on fiabilipy, with the same public API and mathematical behavior, plus working Graphviz-based drawing.
